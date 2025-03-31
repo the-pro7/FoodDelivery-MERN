@@ -1,13 +1,9 @@
 import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
-import dotenv from "dotenv";
 import { createError } from "../error.js";
-import User from "../models/User.js";
-import Orders from "../models/Orders.js";
+import User from "../models/UserSchema.js";
+import Orders from "../models/OrdersSchema.js";
+import { generateTokens, log } from "../utils.js";
 
-dotenv.config();
-
-// Auth
 
 export const UserRegister = async (req, res, next) => {
   try {
@@ -19,8 +15,8 @@ export const UserRegister = async (req, res, next) => {
       return next(createError(409, "Email is already in use."));
     }
 
-    const salt = bcrypt.genSaltSync(10);
-    const hashedPassword = bcrypt.hashSync(password, salt);
+    // const salt = bcrypt.genSaltSync(10);
+    const hashedPassword = bcrypt.hashSync(password, 10);
 
     const user = new User({
       name,
@@ -29,10 +25,20 @@ export const UserRegister = async (req, res, next) => {
       img,
     });
     const createdUser = await user.save();
-    const token = jwt.sign({ id: createdUser._id }, process.env.JWT, {
-      expiresIn: "9999 years",
-    });
-    return res.status(201).json({ token, user });
+    
+    const {accessToken, refreshToken} = generateTokens(createdUser)
+
+    // Store refresh token in cookie
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      sameSite: "strict",
+      maxAge: 1000 * 60 * 60  * 24 * 30, // Should expire in 30days,
+      secure: process.env.NODE_ENV ===  "production"
+    })
+
+    log(accessToken, refreshToken)
+
+    return res.status(201).json({ token: accessToken, user: createdUser });
   } catch (err) {
     next(err);
   }
@@ -42,21 +48,39 @@ export const UserLogin = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
+      if(!email || !password) {
+        return next(createError(401, "Where are your credentials?"))
+      }
+
     //Check for existing user
     const user = await User.findOne({ email: email }).exec();
     if (!user) {
       return next(createError(409, "User not found."));
     }
 
-    const isPasswordCorrect = await bcrypt.compareSync(password, user.password);
+    const isPasswordCorrect =  bcrypt.compareSync(password, user.password);
     if (!isPasswordCorrect) {
       return next(createError(403, "Incorrect password"));
     }
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT, {
-      expiresIn: "9999 years",
-    });
-    return res.status(200).json({ token, user });
+    const {accessToken, refreshToken} = generateTokens(user)
+
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      sameSite: "strict",
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 1000 * 60 * 60 * 24 * 30 // 30 days
+    })
+
+    return res.status(200).json({ token: accessToken, user: {
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      img: user.img,
+      favourites: user.favourites,
+      orders: user.orders,
+      cart: user.cart
+    } });
   } catch (err) {
     next(err);
   }

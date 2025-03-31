@@ -28,10 +28,11 @@ function App() {
           />
           <Routes>
             <Route path="/" exact element={<Home />} />
-            <Route path="/favorite" exact element={<Favourites />} />
-            <Route path="/cart" exact element={<Cart />} />
-            <Route path="/dishes/:id" exact element={<FoodDetails />} />
-            <Route path="/dishes" exact element={<FoodListing />} />
+            <Route path="/favorite" element={<Favourites />} />
+            <Route path="/cart" element={<Cart />} />
+            <Route path="/dishes/:id" element={<FoodDetails />} />
+            <Route path="/dishes" element={<FoodListing />} />
+            <Route path="*" element={<div>404 - Page Not Found</div>} />
           </Routes>
           {openAuth && (
             <Authentication setOpenAuth={setOpenAuth} openAuth={openAuth} />

@@ -10,7 +10,7 @@ import {
   placeOrder,
   removeFromCart,
   removeFromFavorites,
-} from "../controllers/User.js";
+} from "../controllers/UserController.js";
 import { verifyToken } from "../middleware/verifyUser.js";
 
 const router = express.Router();

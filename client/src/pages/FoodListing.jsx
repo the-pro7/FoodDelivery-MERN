@@ -112,11 +112,12 @@ const FoodListing = () => {
       <Filters>
         <Menu>
           {filter.map((filters) => (
-            <FilterSection>
+            <FilterSection key={filters.name}>
               <Title>{filters.name}</Title>
               {filters.value === "price" ? (
                 <Slider
-                  aria-label="Price"
+                  // aria-label="Price"
+                  // getAriaLabel={"Price"}
                   defaultValue={priceRange}
                   min={0}
                   max={1000}
